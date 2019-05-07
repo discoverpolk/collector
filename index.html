@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+<title>Collector - Discover Polk + Lower Polk</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="jquery/jquery-1.6.4.min.js"></script>
+
+
+
+ <link rel="stylesheet" href="https://unpkg.com/leaflet@1.2.0/dist/leaflet.css"
+   integrity="sha512-M2wvCLH6DSRazYeZRIm1JnYyh22purTM+FDB5CsyxtQJYeKq83arPe5wgbNmcFXGqiSH2XR8dT/fJISVA1r/zQ=="
+   crossorigin=""/>
+ <script src="https://unpkg.com/leaflet@1.2.0/dist/leaflet.js"
+   integrity="sha512-lInM/apFSqyy1o6s89K4iQUKg6ppXEgsVxT35HbzUupEVRh2Eu9Wdl4tHj7dZO0s1uvplcYGmt3498TtHq+log=="
+   crossorigin=""></script>
+ <script src="randomColor.min.js"></script>
+ 
+
+
+
+
+  <!-- Tabletop to access Google spreadsheets - THANK YOU AMAZING HUMANS WHO CREATED THIS!! LOVE LOVE LOVE-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabletop.js/1.5.1/tabletop.js"></script>
+  
+  <!-- Marker clustering and sidebar -->  
+
+	<script src="button/leaflet-button.js"></script>
+
+
+
+ <!-- FUSE - thanks, Kiro -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.0.4/fuse.min.js"></script>
+	
+<link rel="stylesheet" href="css/dp_style.css" />
+
+
+
+<style>
+		
+</style>
+
+</head>				
+	
+<body>
+
+<div id="mapdiv"></div>
+
+<script type="text/javascript">
+
+
+// General note: TABLETOP, I love you. LOVE YOU.
+
+
+var map = L.map('mapdiv',{
+  maxZoom: 20,
+  fullscreenControl: true,
+  fullscreenControlOptions: {
+    position: 'topleft'
+  }
+} ).setView([37.793165, -122.422057], 17);
+
+
+ 
+
+
+googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',{
+	maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3'],
+	attribution: 'uses google satellite'
+});
+
+googleStr = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+	maxZoom: 20,
+    subdomains:['mt0','mt1','mt2','mt3'],
+	attribution: 'uses google streets'
+});
+
+googleStr.addTo(map);
+
+var bases = {"Streets": googleStr};
+
+overlayLayers = {}; 
+		<!-- don't forget to add any new layers to the menu! -->		
+grafOverlay={};
+
+
+
+function getColor(a) {
+	switch (a) {
+	case 'Discover Polk':
+      return '#027e9c';
+	case 'Lower Polk': 
+	  return '#FAF13A';
+    default:
+      return '#444';
+	
+	
+	}
+	
+}
+
+var count = 0;
+var maxMonth = 0;
+
+
+
+
+
+function style(feature) {
+		
+			return {
+					weight: 6,
+					opacity: .3,
+					color: getColor(feature.properties.name),
+					fillOpacity: 0.1,
+					fillColor: getColor(feature.properties.name),
+				};
+			}
+var cbdLayer = new L.geoJson;
+
+$.getJSON("https://discoverpolk.github.io/graffiti/polkcbds.geojson",
+            function(data) {
+	        cbdLayer = L.geoJson(data, {
+				style: style,
+				interactive: false,
+				onEachFeature: function (feature, layer) {
+
+				}
+				
+			});
+			cbdLayer.addTo(map);
+			});
+
+
+
+
+
+
+
+
+		
+function init() {
+
+Tabletop.init({
+    	key: "https://docs.google.com/spreadsheets/d/1gpomxX8Bo5jKa3opKf_BEBcTpzzilzNpqrstzEPJ2Ck/edit?usp=sharing",
+    	callback: loadData,
+    	simpleSheet: true,
+    	debug: false
+    });
+	
+
+	
+}			
+			
+
+function loadData(data) {
+
+	for (i=0;i<=data.length-1;i++) {
+		if ((data[i].Lat !='#N/A') && (data[i].Lat !='#REF!')) {
+			var lat = data[i].Lat;
+			var lng = data[i].Lng;
+			var latlng = [lat,lng];
+			var atype = data[i].a_type;
+			grafMarker = L.CircleMarker.extend({
+				options:{
+					data: []
+				}
+			});
+			
+			if ((latlng != null)&&(lat != 'Loading...') && (lat != '#N/A')) {
+			var marker = new grafMarker(latlng, {
+				radius: 10,
+				weight:2,
+				color:"#fff",
+				opacity:.7,
+				fillOpacity: 0.7,
+				fillColor:"#3899d4",
+				data: data[i]
+				});
+				
+
+
+
+			
+			var content = 
+					"<b>"+ data[i].PointType + "</b>" ;
+
+
+			marker.bindTooltip(content,{'maxWidth':'300px'});
+			
+
+			if (map.hasLayer(googleStr)){
+				googleStr.redraw();
+			}
+
+
+			marker.on("click", function(e) {
+				L.DomEvent.stop(e);
+				displayInfo(e);			
+			});
+			marker.addTo(map);
+			
+		}
+}
+};		
+				
+	
+
+}
+
+
+
+function displayInfo (a) {
+
+
+
+		var info = a.target.options.data;
+
+
+
+}
+
+var clickLat;
+var clickLng;
+
+
+map.on('click', function(e) {        
+        var popLocation= e.latlng;
+		var popupContent = "<a href='https://docs.google.com/forms/d/e/1FAIpQLSdEhQXujLOgGttc18-Q0YwTnUwvm-nY6eUGIM2Y0Hz35bFiXg/viewform?usp=pp_url&entry.1268047507=" + popLocation.lat + "&entry.1535480481=" + popLocation.lng + "'>ADD FEATURE</a>";
+        var popup = L.popup()
+        .setLatLng(popLocation)
+        .setContent(popupContent)
+        .openOn(map);        
+    });
+			
+init();
+	
+</script> 
+  
+
+</body>
+</html>
